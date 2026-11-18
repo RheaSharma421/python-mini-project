@@ -80,6 +80,10 @@ DIFFICULTY_LEVELS = {
 #  HELPERS
 # ─────────────────────────────────────────────
 def clear():
+    # Contract: takes no arguments, returns None.
+    # Side-effect: clears the terminal screen by running "cls" on Windows
+    # (os.name == "nt") or "clear" on POSIX systems (os.name == "posix").
+    # The specific command is selected at call time based on os.name.
     os.system("cls" if os.name == "nt" else "clear")
 
 
