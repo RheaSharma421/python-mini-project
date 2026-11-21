@@ -1,78 +1,67 @@
 #!/usr/bin/env python3
 """
-work/R26-T051/check.py
-Focused runner for R26-T051 regression tests.
+Focused regression test runner for R26-T051: Word Scramble Game clear function.
 
-WHY THE OLD check.py FAILED WITH ModuleNotFoundError: No module named 'tests'
--------------------------------------------------------------------------------
-The old runner used:
-    python3 -m unittest discover -s tests -p test_word_scramble_game.py -t .
-
-In Python 3.11+ the `discover` sub-command requires the start directory (-s)
-to be *importable* as a package (i.e. it must contain an __init__.py).
-The `tests/` directory in this repo has no __init__.py, so Python cannot
-treat it as a package named "tests" – hence the ImportError.
-
-There are three correct fixes:
-  (a) Add an __init__.py to tests/  — changes shared infrastructure, undesirable.
-  (b) Call the test file as a script: python3 tests/test_word_scramble_game.py
-      — only works when the file has an `if __name__ == "__main__"` block.
-  (c) Use pytest, which uses its own file-based collector and does NOT
-      require __init__.py.  This is exactly what the project's CI workflow
-      does (see .github/workflows/tests.yml: "pytest tests/ -v --tb=short").
-
-This runner uses fix (c): it delegates to the venv pytest so it matches CI.
-
-Usage (from repo root):
+Usage:
     python3 work/R26-T051/check.py
-Exit codes:
-    0  – all tests passed
-    non-zero – at least one test failed or an error occurred
+
+Requirements:
+- Imports or invokes only the named module / tests.
+- Mocks external I/O, GUI input, network, files, and clock dependencies.
+- Prints useful test results reporting expected vs actual.
+- Returns exit code 0 on success, non-zero on failure.
 """
 
-import subprocess
 import sys
+import os
 from pathlib import Path
+import unittest
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
-REPO_ROOT = Path(__file__).resolve().parents[2]      # …/python-mini-project
-VENV_PYTEST = REPO_ROOT / ".venv" / "bin" / "pytest"
-TEST_FILE   = REPO_ROOT / "tests" / "test_word_scramble_game.py"
+# Ensure repo root is on sys.path
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-# ---------------------------------------------------------------------------
-# Build the command
-# ---------------------------------------------------------------------------
-# We invoke the venv pytest directly (not via -m) so there is no dependency
-# on the system Python having pytest installed – matching the documented
-# "use a virtual environment" requirement.
-cmd = [
-    str(VENV_PYTEST),
-    str(TEST_FILE),
-    "-v",
-    "--tb=short",
-]
+from tests.test_word_scramble_clear import TestWordScrambleClearRegression
 
-print("=" * 70)
-print("R26-T051 check runner")
-print("=" * 70)
-print(f"Repo root : {REPO_ROOT}")
-print(f"Command   : {' '.join(cmd)}")
-print("=" * 70)
 
-# ---------------------------------------------------------------------------
-# Run
-# ---------------------------------------------------------------------------
-result = subprocess.run(cmd, cwd=REPO_ROOT)
+def main():
+    print("=" * 70)
+    print("R26-T051: Word Scramble Game - `clear` Regression Test Runner")
+    print("=" * 70)
+    print(f"Python: {sys.version.split()[0]} ({sys.executable})")
+    print(f"Target: games/Word-Scramble-Game/Word-Scramble-Game.py -> clear()")
+    print("Fixture Preconditions: note = [] (line 276), valid_words = [] (line 345)")
+    print("-" * 70)
 
-print("=" * 70)
-# Record non-zero test count: pytest's exit code 0 means all passed.
-# Any non-zero code means at least one failure.
-if result.returncode == 0:
-    print("RESULT: All tests PASSED. Exit code: 0")
-else:
-    print(f"RESULT: Tests FAILED. Exit code: {result.returncode}")
-print("=" * 70)
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromTestCase(TestWordScrambleClearRegression)
 
-sys.exit(result.returncode)
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+
+    print("-" * 70)
+    total = result.testsRun
+    failures = len(result.failures)
+    errors = len(result.errors)
+    passed = total - failures - errors
+
+    print(f"Tests executed: {total}")
+    print(f"Passed:         {passed}")
+    print(f"Failed:         {failures}")
+    print(f"Errors:         {errors}")
+    print("=" * 70)
+
+    if not result.wasSuccessful():
+        print("\n❌ REGRESSION TESTS FAILED")
+        for test, trace in result.failures + result.errors:
+            print(f"\nFailure in {test}:")
+            print(trace)
+        sys.exit(1)
+    else:
+        print("\n✅ ALL REGRESSION TESTS PASSED")
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
